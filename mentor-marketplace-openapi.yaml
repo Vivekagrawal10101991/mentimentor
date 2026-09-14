@@ -1,0 +1,1426 @@
+openapi: 3.0.3
+info:
+  title: Mentor Marketplace Backend API
+  version: 1.0.0
+  description: |
+    OpenAPI specification for a real-time mentor marketplace backend.
+    Includes authentication (OTP), user profiles, mentor discovery, booking lifecycle,
+    session OTP start/end, and payment operations.
+servers:
+  - url: https://api.mentor-marketplace.com/v1
+    description: Production
+  - url: https://staging-api.mentor-marketplace.com/v1
+    description: Staging
+tags:
+  - name: Auth
+  - name: Users
+  - name: Mentors
+  - name: Bookings
+  - name: Payments
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/otp/send:
+    post:
+      tags: [Auth]
+      summary: Send OTP to phone number
+      description: Sends a one-time password to the given phone for login/signup.
+      security: []
+      operationId: sendOtp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendOtpRequest'
+      responses:
+        '200':
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendOtpResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/otp/verify:
+    post:
+      tags: [Auth]
+      summary: Verify OTP and issue tokens
+      security: []
+      operationId: verifyOtp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+      responses:
+        '200':
+          description: OTP verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyOtpResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      operationId: getMyProfile
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Users]
+      summary: Update current user profile
+      operationId: updateMyProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserProfileRequest'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/me/interests:
+    put:
+      tags: [Users]
+      summary: Upsert mentee interests
+      description: Replace the current mentee interests with provided values.
+      operationId: upsertMenteeInterests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertInterestsRequest'
+      responses:
+        '200':
+          description: Interests saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterestsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /mentors/me/profile:
+    get:
+      tags: [Users]
+      summary: Get mentor profile for current user
+      operationId: getMyMentorProfile
+      responses:
+        '200':
+          description: Mentor profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MentorProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Users]
+      summary: Create or update mentor profile
+      operationId: upsertMyMentorProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertMentorProfileRequest'
+      responses:
+        '200':
+          description: Mentor profile saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MentorProfileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /mentors/search:
+    get:
+      tags: [Mentors]
+      summary: Search mentors
+      description: Returns mentors filtered by category/subcategory/availability/location and sorted by relevance.
+      operationId: searchMentors
+      parameters:
+        - $ref: '#/components/parameters/CategoryId'
+        - $ref: '#/components/parameters/SubcategoryId'
+        - name: language
+          in: query
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 32
+          required: false
+        - name: availableOnly
+          in: query
+          schema:
+            type: boolean
+            default: true
+          required: false
+        - name: startTime
+          in: query
+          description: Requested start time for availability matching.
+          schema:
+            type: string
+            format: date-time
+          required: false
+        - name: durationMinutes
+          in: query
+          description: Required duration to match availability.
+          schema:
+            type: integer
+            minimum: 15
+            maximum: 240
+          required: false
+        - name: locationCity
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+          required: false
+        - name: locationCountry
+          in: query
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            pattern: '^[A-Z]{2}$'
+          required: false
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Search result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MentorSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /mentors/{mentorId}:
+    get:
+      tags: [Mentors]
+      summary: Get mentor detail
+      operationId: getMentorById
+      parameters:
+        - $ref: '#/components/parameters/MentorId'
+      responses:
+        '200':
+          description: Mentor details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MentorDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /bookings:
+    post:
+      tags: [Bookings]
+      summary: Create booking (instant or scheduled)
+      operationId: createBooking
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 128
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /bookings/{bookingId}:
+    get:
+      tags: [Bookings]
+      summary: Get booking details
+      operationId: getBookingById
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: Booking detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /bookings/{bookingId}/session-start-otp:
+    post:
+      tags: [Bookings]
+      summary: Verify session start OTP and start session
+      description: Session starts once required OTP validations complete (policy controlled server-side).
+      operationId: startSessionWithOtp
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartSessionOtpRequest'
+      responses:
+        '200':
+          description: OTP accepted; session state updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStartResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /bookings/{bookingId}/end:
+    post:
+      tags: [Bookings]
+      summary: End session
+      operationId: endSession
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EndSessionRequest'
+      responses:
+        '200':
+          description: Session ended and billing finalized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndSessionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /payments:
+    get:
+      tags: [Payments]
+      summary: List user payments
+      operationId: listPayments
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Payment list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListPaymentsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /payments/{paymentId}:
+    get:
+      tags: [Payments]
+      summary: Get payment details
+      operationId: getPaymentById
+      parameters:
+        - $ref: '#/components/parameters/PaymentId'
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /payments/{paymentId}/refund:
+    post:
+      tags: [Payments]
+      summary: Create refund
+      operationId: createRefund
+      parameters:
+        - $ref: '#/components/parameters/PaymentId'
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 128
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRefundRequest'
+      responses:
+        '201':
+          description: Refund created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    CategoryId:
+      name: categoryId
+      in: query
+      required: false
+      schema:
+        type: string
+        format: uuid
+    SubcategoryId:
+      name: subcategoryId
+      in: query
+      required: false
+      schema:
+        type: string
+        format: uuid
+    MentorId:
+      name: mentorId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    BookingId:
+      name: bookingId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PaymentId:
+      name: paymentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Conflict with current resource state
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+    TooManyRequests:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: INVALID_REQUEST
+            message:
+              type: string
+              example: Request payload is invalid.
+            requestId:
+              type: string
+              example: req_1A2B3C4D
+
+    ValidationErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          additionalProperties: false
+          properties:
+            error:
+              type: object
+              additionalProperties: false
+              properties:
+                fields:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      type: object
+      additionalProperties: false
+      required: [field, code, message]
+      properties:
+        field:
+          type: string
+        code:
+          type: string
+          example: REQUIRED
+        message:
+          type: string
+          example: categoryId is required.
+
+    SendOtpRequest:
+      type: object
+      additionalProperties: false
+      required: [phoneNumber, countryCode, purpose]
+      properties:
+        phoneNumber:
+          type: string
+          pattern: '^[0-9]{6,15}$'
+          example: '9876543210'
+        countryCode:
+          type: string
+          pattern: '^\+[1-9][0-9]{0,3}$'
+          example: '+91'
+        purpose:
+          type: string
+          enum: [login]
+        deviceId:
+          type: string
+          maxLength: 128
+
+    SendOtpResponse:
+      type: object
+      additionalProperties: false
+      required: [otpRequestId, expiresAt, resendAfterSeconds, deliveryHint]
+      properties:
+        otpRequestId:
+          type: string
+          format: uuid
+        expiresAt:
+          type: string
+          format: date-time
+        resendAfterSeconds:
+          type: integer
+          minimum: 0
+        deliveryHint:
+          type: string
+          enum: [sms, dev_log, none]
+          description: >
+            sms: Twilio is configured; code should arrive by SMS.
+            dev_log: OTP_LOG_CODE is on; code is printed in API logs.
+            none: no SMS and no log mode; configure Twilio or OTP_LOG_CODE for local dev.
+
+    VerifyOtpRequest:
+      type: object
+      additionalProperties: false
+      required: [otpRequestId, otpCode]
+      properties:
+        otpRequestId:
+          type: string
+          format: uuid
+        otpCode:
+          type: string
+          pattern: '^[0-9]{4,8}$'
+        deviceId:
+          type: string
+          maxLength: 128
+
+    VerifyOtpResponse:
+      type: object
+      additionalProperties: false
+      required: [accessToken, tokenType, expiresIn, user]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresIn:
+          type: integer
+          minimum: 60
+        user:
+          $ref: '#/components/schemas/UserSummary'
+
+    UserSummary:
+      type: object
+      additionalProperties: false
+      required: [id, phoneNumber, roles]
+      properties:
+        id:
+          type: string
+          format: uuid
+        phoneNumber:
+          type: string
+        roles:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [mentee, mentor]
+
+    UserProfile:
+      type: object
+      additionalProperties: false
+      required:
+        [id, firstName, lastName, phoneNumber, countryCode, timezone, languages, location, roles, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 64
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 64
+        phoneNumber:
+          type: string
+        countryCode:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        timezone:
+          type: string
+          example: Asia/Kolkata
+        languages:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 2
+            maxLength: 32
+        location:
+          $ref: '#/components/schemas/Location'
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [mentee, mentor]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserProfileResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/UserProfile'
+
+    UpdateUserProfileRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 64
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 64
+        avatarUrl:
+          type: string
+          format: uri
+        timezone:
+          type: string
+        languages:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 2
+            maxLength: 32
+        location:
+          $ref: '#/components/schemas/LocationInput'
+
+    UpsertInterestsRequest:
+      type: object
+      additionalProperties: false
+      required: [interests]
+      properties:
+        interests:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/InterestInput'
+
+    InterestsResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Interest'
+
+    InterestInput:
+      type: object
+      additionalProperties: false
+      required: [categoryId, subcategoryId, language]
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        subcategoryId:
+          type: string
+          format: uuid
+        language:
+          type: string
+          minLength: 2
+          maxLength: 32
+
+    Interest:
+      allOf:
+        - $ref: '#/components/schemas/InterestInput'
+        - type: object
+          additionalProperties: false
+          required: [id]
+          properties:
+            id:
+              type: string
+              format: uuid
+
+    UpsertMentorProfileRequest:
+      type: object
+      additionalProperties: false
+      required: [bio, expertise, pricingPackages, availability, modalities, location]
+      properties:
+        bio:
+          type: string
+          minLength: 20
+          maxLength: 2000
+        expertise:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ExpertiseInput'
+        modalities:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum: [video, voice, chat]
+        pricingPackages:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PricingPackageInput'
+        availability:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/AvailabilityInput'
+        location:
+          $ref: '#/components/schemas/LocationInput'
+
+    MentorProfileResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/MentorProfile'
+
+    MentorProfile:
+      type: object
+      additionalProperties: false
+      required:
+        [mentorId, bio, expertise, modalities, pricingPackages, availability, location, rating, totalSessions, isAvailableNow]
+      properties:
+        mentorId:
+          type: string
+          format: uuid
+        bio:
+          type: string
+        expertise:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expertise'
+        modalities:
+          type: array
+          items:
+            type: string
+            enum: [video, voice, chat]
+        pricingPackages:
+          type: array
+          items:
+            $ref: '#/components/schemas/PricingPackage'
+        availability:
+          type: array
+          items:
+            $ref: '#/components/schemas/Availability'
+        location:
+          $ref: '#/components/schemas/Location'
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+        totalSessions:
+          type: integer
+          minimum: 0
+        isAvailableNow:
+          type: boolean
+
+    ExpertiseInput:
+      type: object
+      additionalProperties: false
+      required: [categoryId, subcategoryId, language]
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        subcategoryId:
+          type: string
+          format: uuid
+        language:
+          type: string
+          minLength: 2
+          maxLength: 32
+
+    Expertise:
+      allOf:
+        - $ref: '#/components/schemas/ExpertiseInput'
+        - type: object
+          additionalProperties: false
+          properties:
+            categoryName:
+              type: string
+            subcategoryName:
+              type: string
+
+    PricingPackageInput:
+      type: object
+      additionalProperties: false
+      required: [durationMinutes, priceAmount, currency]
+      properties:
+        durationMinutes:
+          type: integer
+          minimum: 15
+          maximum: 240
+        priceAmount:
+          type: integer
+          minimum: 100
+          description: Amount in minor unit (paise for INR).
+        currency:
+          type: string
+          enum: [INR]
+
+    PricingPackage:
+      allOf:
+        - $ref: '#/components/schemas/PricingPackageInput'
+        - type: object
+          additionalProperties: false
+          required: [packageId, isActive]
+          properties:
+            packageId:
+              type: string
+              format: uuid
+            isActive:
+              type: boolean
+
+    AvailabilityInput:
+      type: object
+      additionalProperties: false
+      required: [startTime, endTime, timezone]
+      properties:
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+        recurrenceRule:
+          type: string
+          description: Optional RRULE string.
+
+    Availability:
+      allOf:
+        - $ref: '#/components/schemas/AvailabilityInput'
+        - type: object
+          additionalProperties: false
+          required: [slotId]
+          properties:
+            slotId:
+              type: string
+              format: uuid
+
+    MentorSearchResponse:
+      type: object
+      additionalProperties: false
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MentorSearchItem'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    MentorSearchItem:
+      type: object
+      additionalProperties: false
+      required:
+        [mentorId, fullName, headline, rating, totalSessions, expertise, pricingPackages, isAvailableNow, location]
+      properties:
+        mentorId:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        headline:
+          type: string
+        rating:
+          type: number
+          format: float
+        totalSessions:
+          type: integer
+        expertise:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expertise'
+        pricingPackages:
+          type: array
+          items:
+            $ref: '#/components/schemas/PricingPackage'
+        isAvailableNow:
+          type: boolean
+        nextAvailableAt:
+          type: string
+          format: date-time
+        location:
+          $ref: '#/components/schemas/Location'
+
+    MentorDetailResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          allOf:
+            - $ref: '#/components/schemas/MentorSearchItem'
+            - type: object
+              additionalProperties: false
+              required: [bio, modalities, availability]
+              properties:
+                bio:
+                  type: string
+                modalities:
+                  type: array
+                  items:
+                    type: string
+                    enum: [video, voice, chat]
+                availability:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Availability'
+
+    CreateBookingRequest:
+      type: object
+      additionalProperties: false
+      required: [mentorId, packageId, bookingType, sessionMode]
+      properties:
+        mentorId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        bookingType:
+          type: string
+          enum: [instant, scheduled]
+        scheduledStartTime:
+          type: string
+          format: date-time
+          description: Required when bookingType=scheduled.
+        sessionMode:
+          type: string
+          enum: [video, voice, chat]
+        notes:
+          type: string
+          maxLength: 500
+
+    BookingResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Booking'
+
+    Booking:
+      type: object
+      additionalProperties: false
+      required:
+        [bookingId, menteeId, mentorId, packageId, bookingType, sessionMode, status, startTime, endTime, pricing, createdAt, updatedAt]
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+        menteeId:
+          type: string
+          format: uuid
+        mentorId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        bookingType:
+          type: string
+          enum: [instant, scheduled]
+        sessionMode:
+          type: string
+          enum: [video, voice, chat]
+        status:
+          type: string
+          enum: [created, payment_pending, confirmed, started, completed, cancelled, failed, mentor_no_show, mentee_no_show]
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        pricing:
+          $ref: '#/components/schemas/PricingBreakdown'
+        sessionStartOtpIssuedAt:
+          type: string
+          format: date-time
+        sessionStartOtpExpiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    StartSessionOtpRequest:
+      type: object
+      additionalProperties: false
+      required: [otpCode, actorRole]
+      properties:
+        otpCode:
+          type: string
+          pattern: '^[0-9]{4,8}$'
+        actorRole:
+          type: string
+          enum: [mentor, mentee]
+
+    SessionStartResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [bookingId, status, otpValidatedBy, sessionStarted]
+          properties:
+            bookingId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [confirmed, started]
+            otpValidatedBy:
+              type: array
+              items:
+                type: string
+                enum: [mentor, mentee]
+            sessionStarted:
+              type: boolean
+            startedAt:
+              type: string
+              format: date-time
+
+    EndSessionRequest:
+      type: object
+      additionalProperties: false
+      required: [endedBy]
+      properties:
+        endedBy:
+          type: string
+          enum: [mentor, mentee, system]
+        reason:
+          type: string
+          maxLength: 128
+
+    EndSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [bookingId, status, endedAt, billedAmount, currency]
+          properties:
+            bookingId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [completed, cancelled]
+            endedAt:
+              type: string
+              format: date-time
+            billedAmount:
+              type: integer
+              minimum: 0
+              description: Amount in minor unit.
+            currency:
+              type: string
+              enum: [INR]
+
+    ListPaymentsResponse:
+      type: object
+      additionalProperties: false
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    PaymentResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Payment'
+
+    Payment:
+      type: object
+      additionalProperties: false
+      required:
+        [paymentId, bookingId, payerUserId, amount, currency, status, provider, providerReference, commission, createdAt, updatedAt]
+      properties:
+        paymentId:
+          type: string
+          format: uuid
+        bookingId:
+          type: string
+          format: uuid
+        payerUserId:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          minimum: 0
+          description: Gross amount in minor unit.
+        currency:
+          type: string
+          enum: [INR]
+        status:
+          type: string
+          enum: [pending, authorized, captured, failed, refunded, partially_refunded]
+        provider:
+          type: string
+          example: razorpay
+        providerReference:
+          type: string
+        commission:
+          $ref: '#/components/schemas/CommissionBreakdown'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateRefundRequest:
+      type: object
+      additionalProperties: false
+      required: [amount, reason]
+      properties:
+        amount:
+          type: integer
+          minimum: 1
+          description: Amount in minor unit.
+        reason:
+          type: string
+          enum: [mentor_no_show, duplicate_charge, user_cancellation, quality_issue, other]
+        reasonNote:
+          type: string
+          maxLength: 300
+
+    RefundResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Refund'
+
+    Refund:
+      type: object
+      additionalProperties: false
+      required: [refundId, paymentId, amount, currency, reason, status, createdAt]
+      properties:
+        refundId:
+          type: string
+          format: uuid
+        paymentId:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+        currency:
+          type: string
+          enum: [INR]
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, succeeded, failed]
+        createdAt:
+          type: string
+          format: date-time
+
+    PricingBreakdown:
+      type: object
+      additionalProperties: false
+      required: [grossAmount, currency, discountAmount, payableAmount]
+      properties:
+        grossAmount:
+          type: integer
+          minimum: 0
+        discountAmount:
+          type: integer
+          minimum: 0
+        payableAmount:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          enum: [INR]
+
+    CommissionBreakdown:
+      type: object
+      additionalProperties: false
+      required: [takeRatePercent, platformAmount, mentorAmount]
+      properties:
+        takeRatePercent:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          example: 20
+        platformAmount:
+          type: integer
+          minimum: 0
+        mentorAmount:
+          type: integer
+          minimum: 0
+
+    LocationInput:
+      type: object
+      additionalProperties: false
+      required: [city, country]
+      properties:
+        city:
+          type: string
+          minLength: 1
+          maxLength: 64
+        state:
+          type: string
+          maxLength: 64
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: '^[A-Z]{2}$'
+        lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+
+    Location:
+      allOf:
+        - $ref: '#/components/schemas/LocationInput'
+        - type: object
+          additionalProperties: false
+          properties:
+            formattedAddress:
+              type: string
+
+    Pagination:
+      type: object
+      additionalProperties: false
+      required: [page, pageSize, total, totalPages]
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer

@@ -1,0 +1,30 @@
+# Local development infrastructure only (Postgres + Redis with host ports published).
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d
+# Then run the API on the host:
+#   ./mvnw spring-boot:run -Dspring-boot.run.profiles=docker
+#
+# For production (full stack), use the root docker-compose.yml instead.
+#
+# Postgres is on host port 5433 so it does not clash with a local PostgreSQL on 5432.
+# Copy .env.example to .env and set POSTGRES_PASSWORD / DB_PASSWORD to the same value.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: mentor_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - mentor_db_pg:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  mentor_db_pg:

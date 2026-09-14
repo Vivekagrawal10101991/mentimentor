@@ -1,0 +1,23 @@
+# Active when SPRING_PROFILES_ACTIVE=prod (Docker Compose production stack).
+# Hostnames match Compose service names. Override any value via environment variables.
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/mentor_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    root: INFO
+    com.mentormarketplace: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO

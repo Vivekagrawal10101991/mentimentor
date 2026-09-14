@@ -1,0 +1,8 @@
+# Use with: ./mvnw spring-boot:run -Dspring-boot.run.profiles=docker
+# Expects: docker compose -f docker-compose.dev.yml up -d
+# (Postgres published on localhost:5433 — see docker-compose.dev.yml)
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/mentor_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}

@@ -1,0 +1,20 @@
+.git
+.github
+.idea
+.vscode
+*.iml
+.DS_Store
+.env
+.env.*
+!.env.example
+target
+mentor-marketplace-web
+Mentor Marketplace Landing Page (Copy)
+deploy
+*.md
+docker-compose*.yml
+Repo_detail.sql
+api-contract.yaml
+mentor-marketplace-openapi.yaml
+SYSTEM_FLOWS.md
+real-time-mentor-marketplace-prd.md

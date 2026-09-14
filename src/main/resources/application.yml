@@ -1,0 +1,92 @@
+spring:
+  application:
+    name: mentimentor
+
+  datasource:
+    # Local Postgres on 5432 (e.g. Homebrew). For Docker DB use profile: docker (see application-docker.yml).
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mentor_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# Browser clients (comma-separated). Required for Google Sign-In + SPA on another origin (e.g. Vite :5173).
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+
+  payment:
+    platform-fee-percent: ${PLATFORM_FEE_PERCENT:20.0}
+
+  availability:
+    sync-interval-ms: ${AVAILABILITY_SYNC_INTERVAL_MS:60000}
+
+  otp:
+    # Requirement: OTP expiry is 5 minutes
+    ttl-seconds: ${OTP_TTL_SECONDS:300}
+    # Requirement: OTP is 4–6 digits
+    min-digits: ${OTP_MIN_DIGITS:4}
+    max-digits: ${OTP_MAX_DIGITS:6}
+    # Retry limit per otpRequestId
+    max-attempts: ${OTP_MAX_ATTEMPTS:5}
+    # Set true locally to print OTP in the server console (useful when SMS is not configured)
+    log-code-to-console: ${OTP_LOG_CODE:false}
+
+  # Optional: real SMS via Twilio (all three required). If unset, OTP is only stored in Redis (+ optional console log above).
+  # TWILIO_FROM_NUMBER must be Twilio-owned; cannot equal the user's login phone (Twilio 21266).
+  sms:
+    twilio:
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token: ${TWILIO_AUTH_TOKEN:}
+      from-number: ${TWILIO_FROM_NUMBER:}
+
+  # Optional: comma-separated +country|nationalDigits — those accounts get JWT role "admin" on phone OTP login.
+  admin:
+    bootstrap-phones: ${ADMIN_BOOTSTRAP_PHONES:}
+
+  # First-time portal super admin (username/password). Created on startup only if no SUPER_ADMIN row exists.
+  # Use lowercase username (3–64 chars: a-z, 0-9, underscore). Password min 8 characters.
+  admin-portal:
+    super-admin-username: ${ADMIN_PORTAL_SUPER_USERNAME:}
+    super-admin-password: ${ADMIN_PORTAL_SUPER_PASSWORD:}
+
+  google:
+    # Web client ID from Google Cloud Console (OAuth 2.0 Client IDs)
+    client-id: ${GOOGLE_CLIENT_ID:}
+
+  jwt:
+    secret: ${JWT_SECRET:replace-with-strong-secret}
+    issuer: ${JWT_ISSUER:mentor-marketplace}
+    access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
+    refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:7d}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    com.mentormarketplace: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
