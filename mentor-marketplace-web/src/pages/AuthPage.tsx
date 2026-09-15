@@ -1,11 +1,11 @@
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Globe, GraduationCap, Phone } from "lucide-react";
 import { googleClientId } from "@/config/env";
 import { normalizeApiError } from "@/lib/apiError";
-import { consumePostAuthReturn } from "@/lib/postAuthRedirect";
+import { consumePostAuthReturn, setPostAuthReturn } from "@/lib/postAuthRedirect";
 import { safeInternalPath } from "@/lib/safeInternalPath";
 import {
   clearStoredSession,
@@ -88,6 +88,7 @@ export function AuthPage({
   roleGate,
 }: AuthPageProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isAdminPortal = authMode === "admin";
   const [countryCode, setCountryCode] = useState("+91");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -98,6 +99,17 @@ export function AuthPage({
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Honor ?next=/path from auth-gated CTAs (also mirrored into sessionStorage).
+  useEffect(() => {
+    if (isAdminPortal) {
+      return;
+    }
+    const next = safeInternalPath(searchParams.get("next"));
+    if (next) {
+      setPostAuthReturn(next);
+    }
+  }, [isAdminPortal, searchParams]);
   const [otpSetupWarning, setOtpSetupWarning] = useState<string | null>(null);
   const [adminUsername, setAdminUsername] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
@@ -569,14 +581,28 @@ export function AuthPage({
             {variant === "signup" ? (
               <>
                 Already have an account?{" "}
-                <Link to="/login" className="font-semibold text-indigo-600">
+                <Link
+                  to={
+                    searchParams.get("next")
+                      ? `/login?next=${encodeURIComponent(searchParams.get("next")!)}`
+                      : "/login"
+                  }
+                  className="font-semibold text-indigo-600"
+                >
                   Sign in
                 </Link>
               </>
             ) : (
               <>
                 New here?{" "}
-                <Link to="/signup" className="font-semibold text-indigo-600">
+                <Link
+                  to={
+                    searchParams.get("next")
+                      ? `/signup?next=${encodeURIComponent(searchParams.get("next")!)}`
+                      : "/signup"
+                  }
+                  className="font-semibold text-indigo-600"
+                >
                   Create an account
                 </Link>
               </>

@@ -23,6 +23,7 @@ import {
   minActivePackagePricePaise,
 } from "@/lib/mentorDisplay";
 import { normalizeMentorSearchResponse } from "@/lib/normalizeMentorSearchResponse";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { endpoints, httpClient } from "@/services/api";
 import type { MentorSearchItem } from "@/types";
 
@@ -43,6 +44,7 @@ type SearchMode = "online" | "offline" | "both";
 type RatingFilter = null | "4" | "4.5";
 
 export function SearchPage() {
+  const allowed = useRequireAuth({ fallbackReturn: "/search" });
   const navigate = useNavigate();
   const [urlParams] = useSearchParams();
   const urlCategory = urlParams.get("category");
@@ -165,6 +167,10 @@ export function SearchPage() {
     mentor.expertise[0]?.subcategoryName ??
     mentor.expertise[0]?.subcategoryId ??
     "Mentor";
+
+  if (!allowed) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 pb-6">

@@ -12,6 +12,7 @@ import { ONBOARDING_CATEGORIES } from "@/constants/onboardingCategories";
 import { normalizeApiError } from "@/lib/apiError";
 import { normalizeMentorSearchResponse } from "@/lib/normalizeMentorSearchResponse";
 import { formatCheapestActivePackage } from "@/lib/mentorDisplay";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { endpoints, httpClient } from "@/services/api";
 import type { MentorSearchItem } from "@/types";
 
@@ -29,6 +30,7 @@ function defaultSearchParams() {
 }
 
 export function MapSearchPage() {
+  const allowed = useRequireAuth({ fallbackReturn: "/search/offline" });
   const navigate = useNavigate();
   const [urlParams] = useSearchParams();
   const initialPin = urlParams.get("pin") ?? "";
@@ -94,6 +96,10 @@ export function MapSearchPage() {
     }
     return { mentor, ...fallback };
   });
+
+  if (!allowed) {
+    return null;
+  }
 
   return (
     <div className="flex h-screen flex-col bg-slate-50">

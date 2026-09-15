@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/Logo";
 import { normalizeApiError } from "@/lib/apiError";
 import { getStoredAccessToken } from "@/lib/sessionUser";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { endpoints, httpClient } from "@/services/api";
 import {
   ArrowLeft,
@@ -285,6 +286,10 @@ function StepHeader({
 }
 
 export function MentorOnboardingPage() {
+  const allowed = useRequireAuth({
+    authPath: "/signup",
+    fallbackReturn: "/profiles/mentor",
+  });
   const navigate = useNavigate();
   const [flow, setFlow] = useState<FlowStep>("basic");
 
@@ -472,6 +477,10 @@ export function MentorOnboardingPage() {
       },
       "recommended-rate"
     );
+  }
+
+  if (!allowed) {
+    return null;
   }
 
   return (

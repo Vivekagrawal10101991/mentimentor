@@ -18,7 +18,9 @@ import {
   X,
   Quote,
 } from "lucide-react";
+import { AuthNavLink } from "@/components/AuthNavLink";
 import { Logo } from "@/components/Logo";
+import { getStoredAccessToken } from "@/lib/sessionUser";
 
 const BLUE = "#243B8F";
 const DARK = "#101A5C";
@@ -36,7 +38,13 @@ const PHOTOS = {
   t3Avatar:      "https://images.unsplash.com/photo-1586985564150-11ee04838034?w=80&h=80&fit=crop&auto=format&q=80",
 };
 
-const navLinks = ["Find a Mentor", "How It Works", "Become a Mentor", "Resources", "About Us"];
+const navLinks: { label: string; to: string; requireAuth?: boolean }[] = [
+  { label: "Find a Mentor", to: "/search", requireAuth: true },
+  { label: "How It Works", to: "#how-it-works" },
+  { label: "Become a Mentor", to: "/profiles/mentor", requireAuth: true },
+  { label: "Resources", to: "#resources" },
+  { label: "About Us", to: "#about" },
+];
 
 const howSteps = [
   { num: "01", title: "Tell us what you need", desc: "Subject, level, goals, preferred timing and learning style. Takes less than 2 minutes." },
@@ -104,6 +112,7 @@ const features = [
 export function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedMentor, setSelectedMentor] = useState<number | null>(null);
+  const signedIn = !!getStoredAccessToken();
 
   return (
     <div className="min-h-screen bg-white font-[Manrope,sans-serif] overflow-x-hidden">
@@ -113,17 +122,39 @@ export function HomePage() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="shrink-0"><Logo className="h-8 w-auto" /></Link>
           <div className="hidden lg:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <a key={link} href="/search" className="text-sm font-medium text-gray-600 hover:text-[#243B8F] transition-colors">{link}</a>
-            ))}
+            {navLinks.map((link) =>
+              link.requireAuth ? (
+                <AuthNavLink
+                  key={link.label}
+                  to={link.to}
+                  className="text-sm font-medium text-gray-600 hover:text-[#243B8F] transition-colors"
+                >
+                  {link.label}
+                </AuthNavLink>
+              ) : (
+                <a
+                  key={link.label}
+                  href={link.to}
+                  className="text-sm font-medium text-gray-600 hover:text-[#243B8F] transition-colors"
+                >
+                  {link.label}
+                </a>
+              )
+            )}
           </div>
           <div className="hidden lg:flex items-center gap-3">
-            <Link to="/login" className="text-sm font-semibold text-[#243B8F] hover:text-[#101A5C] flex items-center gap-1 transition-colors">
-              Login <ArrowUpRight className="w-4 h-4" />
-            </Link>
-            <Link to="/search" className="px-5 py-2.5 bg-[#DFFF2F] text-[#101A5C] text-sm font-bold rounded-full hover:bg-[#d4f520] transition-colors">
+            {signedIn ? (
+              <Link to="/profiles" className="text-sm font-semibold text-[#243B8F] hover:text-[#101A5C] flex items-center gap-1 transition-colors">
+                My account <ArrowUpRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <Link to="/login" className="text-sm font-semibold text-[#243B8F] hover:text-[#101A5C] flex items-center gap-1 transition-colors">
+                Login <ArrowUpRight className="w-4 h-4" />
+              </Link>
+            )}
+            <AuthNavLink to="/search" className="px-5 py-2.5 bg-[#DFFF2F] text-[#101A5C] text-sm font-bold rounded-full hover:bg-[#d4f520] transition-colors">
               Find My Mentor
-            </Link>
+            </AuthNavLink>
           </div>
           <button className="lg:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -132,12 +163,34 @@ export function HomePage() {
         {mobileMenuOpen && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
             className="lg:hidden bg-white border-t border-black/8 px-6 py-4 space-y-4">
-            {navLinks.map((link) => (
-              <a key={link} href="/search" className="block text-sm font-medium text-gray-700 py-1">{link}</a>
-            ))}
+            {navLinks.map((link) =>
+              link.requireAuth ? (
+                <AuthNavLink
+                  key={link.label}
+                  to={link.to}
+                  className="block text-sm font-medium text-gray-700 py-1"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </AuthNavLink>
+              ) : (
+                <a
+                  key={link.label}
+                  href={link.to}
+                  className="block text-sm font-medium text-gray-700 py-1"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </a>
+              )
+            )}
             <div className="flex flex-col gap-3 pt-2">
-              <Link to="/search" className="w-full text-center px-5 py-3 bg-[#DFFF2F] text-[#101A5C] font-bold rounded-full text-sm">Find My Mentor</Link>
-              <Link to="/profiles/mentor" className="w-full text-center px-5 py-3 bg-[#101A5C] text-white font-bold rounded-full text-sm">Become a Mentor</Link>
+              <AuthNavLink to="/search" className="w-full text-center px-5 py-3 bg-[#DFFF2F] text-[#101A5C] font-bold rounded-full text-sm" onClick={() => setMobileMenuOpen(false)}>
+                Find My Mentor
+              </AuthNavLink>
+              <AuthNavLink to="/profiles/mentor" authPath="/signup" className="w-full text-center px-5 py-3 bg-[#101A5C] text-white font-bold rounded-full text-sm" onClick={() => setMobileMenuOpen(false)}>
+                Become a Mentor
+              </AuthNavLink>
             </div>
           </motion.div>
         )}
@@ -171,14 +224,14 @@ export function HomePage() {
                 mentimentor connects every learner with a verified mentor matched to their learning needs, goals, preferences and location.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link to="/search"
+                <AuthNavLink to="/search"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-[#DFFF2F] text-[#101A5C] font-bold text-base rounded-full hover:bg-[#d4f520] transition-all hover:gap-3 shadow-lg shadow-black/20">
                   Find Your Mentor <ArrowRight className="w-5 h-5" />
-                </Link>
-                <Link to="/profiles/mentor"
+                </AuthNavLink>
+                <AuthNavLink to="/profiles/mentor" authPath="/signup"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-[#101A5C] text-white font-bold text-base rounded-full hover:bg-black transition-all">
                   Become a Mentor <ArrowUpRight className="w-5 h-5" />
-                </Link>
+                </AuthNavLink>
               </div>
               <div className="flex flex-wrap gap-3 mt-10">
                 {[
@@ -260,7 +313,7 @@ export function HomePage() {
       </section>
 
       {/* ───── HOW IT WORKS ───── */}
-      <section className="py-24 bg-white">
+      <section id="how-it-works" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-16">
             <p className="text-[#101A5C] bg-[#DFFF2F] inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4">How It Works</p>
@@ -351,19 +404,19 @@ export function HomePage() {
                     </p>
                     <p className="text-xs text-[#626262]">per hour</p>
                   </div>
-                  <Link to="/search" onClick={(e) => e.stopPropagation()}
+                  <AuthNavLink to="/search" onClick={(e) => e.stopPropagation()}
                     className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all shrink-0 ${selectedMentor === i ? "bg-[#DFFF2F] text-[#101A5C] hover:bg-[#d4f520]" : "bg-[#101A5C] text-white hover:bg-[#243B8F]"}`}>
                     {selectedMentor === i ? "Selected ✓" : "Select →"}
-                  </Link>
+                  </AuthNavLink>
                 </div>
               </motion.div>
             ))}
           </div>
 
           <div className="mt-8 text-center">
-            <Link to="/search" className="inline-flex items-center gap-2 px-8 py-4 bg-[#243B8F] text-white font-bold rounded-full hover:bg-[#101A5C] transition-colors">
+            <AuthNavLink to="/search" className="inline-flex items-center gap-2 px-8 py-4 bg-[#243B8F] text-white font-bold rounded-full hover:bg-[#101A5C] transition-colors">
               Browse All Mentors <ArrowRight className="w-5 h-5" />
-            </Link>
+            </AuthNavLink>
           </div>
         </div>
       </section>
@@ -446,10 +499,10 @@ export function HomePage() {
                 ))}
               </div>
 
-              <Link to="/signup"
+              <AuthNavLink to="/search" authPath="/signup"
                 className="inline-flex items-center gap-2 px-7 py-3.5 bg-[#DFFF2F] text-[#101A5C] font-bold rounded-full hover:bg-[#d4f520] transition-colors mt-10 self-start">
                 Get Started <ArrowRight className="w-5 h-5" />
-              </Link>
+              </AuthNavLink>
             </motion.div>
           </div>
         </div>
@@ -465,17 +518,18 @@ export function HomePage() {
             </p>
           </motion.div>
           <div className="flex flex-wrap justify-center gap-3">
-            {subjects.map((subject, i) => (
-              <motion.a key={subject} href="/search"
-                initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
-                transition={{ delay: i * 0.04 }} whileHover={{ y: -2 }}
-                className="px-6 py-3 bg-white text-[#101A5C] font-semibold rounded-full border-2 border-transparent hover:border-[#243B8F] hover:bg-[#243B8F] hover:text-white transition-all shadow-sm">
+            {subjects.map((subject) => (
+              <AuthNavLink
+                key={subject}
+                to="/search"
+                className="px-6 py-3 bg-white text-[#101A5C] font-semibold rounded-full border-2 border-transparent hover:border-[#243B8F] hover:bg-[#243B8F] hover:text-white transition-all shadow-sm"
+              >
                 {subject}
-              </motion.a>
+              </AuthNavLink>
             ))}
-            <a href="/search" className="px-6 py-3 bg-[#DFFF2F] text-[#101A5C] font-bold rounded-full flex items-center gap-1 hover:bg-[#d4f520] transition-colors shadow-sm">
+            <AuthNavLink to="/search" className="px-6 py-3 bg-[#DFFF2F] text-[#101A5C] font-bold rounded-full flex items-center gap-1 hover:bg-[#d4f520] transition-colors shadow-sm">
               More <ChevronRight className="w-4 h-4" />
-            </a>
+            </AuthNavLink>
           </div>
         </div>
       </section>
@@ -650,14 +704,14 @@ export function HomePage() {
               Tell us what you want to learn. We'll help you find someone who can walk the journey with you.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link to="/search"
+              <AuthNavLink to="/search"
                 className="inline-flex items-center gap-2 px-10 py-4 bg-[#DFFF2F] text-[#101A5C] font-extrabold text-base rounded-full hover:bg-[#d4f520] transition-all shadow-xl shadow-black/30">
                 Find Your Mentor <ArrowRight className="w-5 h-5" />
-              </Link>
-              <Link to="/profiles/mentor"
+              </AuthNavLink>
+              <AuthNavLink to="/profiles/mentor" authPath="/signup"
                 className="inline-flex items-center gap-2 px-10 py-4 bg-[#101A5C] text-white font-bold text-base rounded-full hover:bg-black transition-all">
                 Become a Mentor <ArrowUpRight className="w-5 h-5" />
-              </Link>
+              </AuthNavLink>
             </div>
           </motion.div>
         </div>
