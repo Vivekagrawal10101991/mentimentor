@@ -2,7 +2,16 @@ import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Globe, GraduationCap, Phone } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  CheckCircle2,
+  Globe,
+  Phone,
+  ShieldCheck,
+  Star,
+} from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { googleClientId } from "@/config/env";
 import { normalizeApiError } from "@/lib/apiError";
 import { consumePostAuthReturn, setPostAuthReturn } from "@/lib/postAuthRedirect";
@@ -22,6 +31,16 @@ import type {
   VerifyOtpRequest,
   VerifyOtpResponse,
 } from "@/types";
+
+const BLUE = "#243B8F";
+const LIME = "#DFFF2F";
+
+const inputClass =
+  "h-12 w-full rounded-xl border border-[#101A5C]/15 bg-white px-3 text-sm text-[#101A5C] placeholder:text-gray-400 transition focus:border-[#243B8F] focus:outline-none focus:ring-4 focus:ring-[#243B8F]/10";
+const primaryBtnClass =
+  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#DFFF2F] text-sm font-bold text-[#101A5C] transition hover:bg-[#d4f520] disabled:cursor-not-allowed disabled:opacity-50";
+const darkBtnClass =
+  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#101A5C] text-sm font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50";
 
 function messageAfterOtpSent(hint: OtpDeliveryHint): {
   success: string | null;
@@ -132,10 +151,63 @@ export function AuthPage({
       ? "Create your account"
       : "Welcome back";
   const subtitle = isAdminPortal
-    ? "Sign in with your portal username and password. The first super admin is created from ADMIN_PORTAL_SUPER_* on the API, or via SQL."
+    ? "Sign in with your portal username and password."
     : variant === "signup"
-      ? "Join MentorHub and start learning or mentoring."
-      : "Sign in to continue your learning journey.";
+      ? "Join mentimentor to learn 1:1 or start mentoring."
+      : "Sign in to continue matching with verified mentors.";
+
+  const brandPanel = (
+    <aside
+      className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:px-12 lg:py-12"
+      style={{ backgroundColor: BLUE }}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.06]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
+      />
+      <div className="relative">
+        <Link to="/">
+          <Logo className="h-8 w-auto" variant="white" />
+        </Link>
+      </div>
+      <div className="relative max-w-md space-y-6">
+        <p
+          className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-white/80"
+        >
+          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: LIME }} />
+          Capability-verified mentors
+        </p>
+        <h2 className="text-4xl font-extrabold leading-tight text-white">
+          Learning that fits{" "}
+          <span style={{ color: LIME }}>you</span>
+          — not a generic tutor list.
+        </h2>
+        <p className="text-lg leading-relaxed text-white/70">
+          Sign in to find mentors matched to your goals, level, and preferences.
+        </p>
+        <div className="flex flex-wrap gap-3 pt-2">
+          {[
+            { icon: BadgeCheck, text: "Verified mentors" },
+            { icon: Star, text: "4.8+ average rating" },
+            { icon: ShieldCheck, text: "Identity checked" },
+          ].map(({ icon: Icon, text }) => (
+            <div
+              key={text}
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm"
+            >
+              <Icon className="h-3.5 w-3.5" style={{ color: LIME }} />
+              {text}
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="relative text-xs text-white/40">© 2026 mentimentor · Made in India</p>
+    </aside>
+  );
 
   async function handleSendOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -301,37 +373,45 @@ export function AuthPage({
 
   if (isAdminPortal) {
     return (
-      <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-        <div className="flex items-center justify-center p-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600">
-              <GraduationCap className="h-6 w-6 text-white" />
-            </div>
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-2xl font-bold text-transparent">
-              MentorHub
-            </span>
-          </div>
-        </div>
+      <div className="grid min-h-screen bg-white font-[Manrope,sans-serif] lg:grid-cols-2">
+        {brandPanel}
 
-        <div className="flex-1 px-6 pb-6">
-          <motion.div
-            key="admin-portal"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white/85 p-6 shadow-sm backdrop-blur-sm sm:p-8"
-          >
-            <div className="space-y-6">
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between border-b border-black/8 px-6 py-4 lg:hidden">
+            <Link to="/">
+              <Logo className="h-7 w-auto" />
+            </Link>
+            <Link
+              to="/"
+              className="text-sm font-semibold text-[#243B8F] hover:text-[#101A5C]"
+            >
+              Home
+            </Link>
+          </div>
+
+          <div className="flex flex-1 items-center justify-center px-6 py-10 sm:px-10">
+            <motion.div
+              key="admin-portal"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md space-y-8"
+            >
               <div>
-                <h1 className="mb-2 text-3xl font-bold text-slate-900">{title}</h1>
-                <p className="text-slate-600">{subtitle}</p>
+                <p className="mb-3 inline-block rounded-full bg-[#DFFF2F] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#101A5C]">
+                  Admin portal
+                </p>
+                <h1 className="mb-2 text-3xl font-extrabold text-[#101A5C] sm:text-4xl">
+                  {title}
+                </h1>
+                <p className="text-gray-600">{subtitle}</p>
               </div>
 
-              <form className="space-y-3" onSubmit={handleAdminPortalLogin}>
+              <form className="space-y-4" onSubmit={handleAdminPortalLogin}>
                 <div>
                   <label
                     htmlFor="adminUsername"
-                    className="mb-1 block text-sm font-medium text-slate-700"
+                    className="mb-1.5 block text-sm font-semibold text-[#101A5C]"
                   >
                     Username
                   </label>
@@ -341,9 +421,11 @@ export function AuthPage({
                     autoComplete="username"
                     value={adminUsername}
                     onChange={(e) =>
-                      setAdminUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+                      setAdminUsername(
+                        e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "")
+                      )
                     }
-                    className="h-12 w-full rounded-xl border border-slate-300 px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100"
+                    className={inputClass}
                     placeholder="superadmin"
                     maxLength={64}
                   />
@@ -351,7 +433,7 @@ export function AuthPage({
                 <div>
                   <label
                     htmlFor="adminPassword"
-                    className="mb-1 block text-sm font-medium text-slate-700"
+                    className="mb-1.5 block text-sm font-semibold text-[#101A5C]"
                   >
                     Password
                   </label>
@@ -361,254 +443,305 @@ export function AuthPage({
                     autoComplete="current-password"
                     value={adminPassword}
                     onChange={(e) => setAdminPassword(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-slate-300 px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100"
+                    className={inputClass}
                     placeholder="••••••••"
                   />
                 </div>
                 {!isAdminFormValid &&
                   (adminUsername.length > 0 || adminPassword.length > 0) && (
-                    <p className="text-xs text-slate-600">
-                      Username: 3–64 characters (lowercase letters, digits, underscore). Password: at
-                      least 8 characters.
+                    <p className="text-xs text-gray-500">
+                      Username: 3–64 characters (lowercase letters, digits,
+                      underscore). Password: at least 8 characters.
                     </p>
                   )}
                 <button
                   type="submit"
                   disabled={!isAdminFormValid || portalLoginLoading}
-                  className="h-12 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white transition hover:from-indigo-700 hover:to-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={darkBtnClass}
                 >
                   {portalLoginLoading ? "Signing in…" : "Sign in"}
+                  {!portalLoginLoading && <ArrowRight className="h-4 w-4" />}
                 </button>
               </form>
-            </div>
 
-            {(errorMessage || successMessage) && (
-              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-                {errorMessage && <p className="text-rose-600">{errorMessage}</p>}
-                {successMessage && (
-                  <p className="text-emerald-700">{successMessage}</p>
-                )}
-              </div>
-            )}
+              {(errorMessage || successMessage) && (
+                <div className="rounded-2xl border border-[#101A5C]/10 bg-[#F6F7F2] p-4 text-sm">
+                  {errorMessage && (
+                    <p className="text-rose-600">{errorMessage}</p>
+                  )}
+                  {successMessage && (
+                    <p className="text-emerald-700">{successMessage}</p>
+                  )}
+                </div>
+              )}
 
-            <p className="mt-6 text-center text-sm text-slate-600">
-              <Link to="/" className="font-semibold text-indigo-600">
-                Back to MentorHub
-              </Link>
-            </p>
-          </motion.div>
+              <p className="text-center text-sm text-gray-500">
+                <Link
+                  to="/"
+                  className="font-semibold text-[#243B8F] hover:text-[#101A5C]"
+                >
+                  Back to mentimentor
+                </Link>
+              </p>
+            </motion.div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <div className="flex items-center justify-center p-6">
-        <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600">
-            <GraduationCap className="h-6 w-6 text-white" />
+    <div className="grid min-h-screen bg-white font-[Manrope,sans-serif] lg:grid-cols-2">
+      {brandPanel}
+
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between border-b border-black/8 px-6 py-4 lg:hidden">
+          <Link to="/">
+            <Logo className="h-7 w-auto" />
+          </Link>
+          <Link
+            to="/"
+            className="text-sm font-semibold text-[#243B8F] hover:text-[#101A5C]"
+          >
+            Home
+          </Link>
+        </div>
+
+        <div className="px-6 pt-8 sm:px-10 lg:pt-12">
+          <div className="mx-auto flex max-w-md items-center gap-2">
+            {[1, 2].map((step) => (
+              <div
+                key={step}
+                className={`h-1.5 flex-1 rounded-full transition-all ${
+                  step <= flowStep ? "bg-[#243B8F]" : "bg-[#101A5C]/10"
+                }`}
+              />
+            ))}
           </div>
-          <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-2xl font-bold text-transparent">
-            MentorHub
-          </span>
         </div>
-      </div>
 
-      <div className="mb-8 px-6">
-        <div className="mx-auto flex max-w-md items-center gap-2">
-          {[1, 2].map((step) => (
-            <div
-              key={step}
-              className={`h-1.5 flex-1 rounded-full transition-all ${
-                step <= flowStep ? "bg-indigo-600" : "bg-slate-200"
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="flex-1 px-6 pb-6">
-        <motion.div
-          key={flowStep}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
-          className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white/85 p-6 shadow-sm backdrop-blur-sm sm:p-8"
-        >
-          {!otpRequestId ? (
-            <div className="space-y-6">
-              <div>
-                <h1 className="mb-2 text-3xl font-bold text-slate-900">
-                  {title}
-                </h1>
-                <p className="text-slate-600">{subtitle}</p>
-              </div>
-
-              {googleClientId ? (
-                <div className="space-y-3">
-                  <div className="rounded-xl border border-slate-200 bg-white p-3">
-                    <div className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                      <Globe className="h-4 w-4" />
-                      Continue with Google
-                    </div>
-                    <GoogleLogin
-                      onSuccess={handleGoogleSuccess}
-                      onError={() =>
-                        setErrorMessage("Google sign-in failed or was cancelled.")
-                      }
-                      useOneTap={false}
-                      text={variant === "signup" ? "signup_with" : "signin_with"}
-                      shape="rectangular"
-                      size="large"
-                      width={360}
-                    />
-                  </div>
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-slate-300" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="bg-white px-4 text-slate-500">or</span>
-                    </div>
-                  </div>
+        <div className="flex flex-1 items-center justify-center px-6 py-10 sm:px-10">
+          <motion.div
+            key={flowStep}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-md space-y-8"
+          >
+            {!otpRequestId ? (
+              <div className="space-y-6">
+                <div>
+                  <p className="mb-3 inline-block rounded-full bg-[#DFFF2F] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#101A5C]">
+                    {variant === "signup" ? "Get started" : "Sign in"}
+                  </p>
+                  <h1 className="mb-2 text-3xl font-extrabold text-[#101A5C] sm:text-4xl">
+                    {title}
+                  </h1>
+                  <p className="text-gray-600">{subtitle}</p>
                 </div>
-              ) : (
-                <p className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-sm text-slate-600">
-                  To enable Google sign-in, set `VITE_GOOGLE_CLIENT_ID` for web
-                  and `GOOGLE_CLIENT_ID` for the API.
-                </p>
-              )}
 
-              <form className="space-y-3" onSubmit={handleSendOtp}>
-                <div className="grid grid-cols-3 gap-3">
-                  <input
-                    id="countryCode"
-                    type="text"
-                    inputMode="text"
-                    value={countryCode}
-                    onChange={(event) => setCountryCode(event.target.value.trim())}
-                    className="h-12 rounded-xl border border-slate-300 px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100"
-                    placeholder="+91"
-                  />
-                  <div className="relative col-span-2">
-                    <Phone className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                {googleClientId ? (
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-[#101A5C]/10 bg-[#F6F7F2] p-4">
+                      <div className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-[#101A5C]">
+                        <Globe className="h-4 w-4 text-[#243B8F]" />
+                        Continue with Google
+                      </div>
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={() =>
+                          setErrorMessage(
+                            "Google sign-in failed or was cancelled."
+                          )
+                        }
+                        useOneTap={false}
+                        text={
+                          variant === "signup" ? "signup_with" : "signin_with"
+                        }
+                        shape="rectangular"
+                        size="large"
+                        width={360}
+                      />
+                    </div>
+
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-[#101A5C]/10" />
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="bg-white px-4 text-gray-500">
+                          or use phone
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="rounded-2xl border border-[#101A5C]/10 bg-[#F6F7F2] p-4 text-sm text-gray-600">
+                    To enable Google sign-in, set `VITE_GOOGLE_CLIENT_ID` for web
+                    and `GOOGLE_CLIENT_ID` for the API.
+                  </p>
+                )}
+
+                <form className="space-y-3" onSubmit={handleSendOtp}>
+                  <div className="grid grid-cols-3 gap-3">
                     <input
-                      id="phoneNumber"
-                      type="tel"
-                      inputMode="numeric"
-                      value={phoneNumber}
+                      id="countryCode"
+                      type="text"
+                      inputMode="text"
+                      value={countryCode}
                       onChange={(event) =>
-                        setPhoneNumber(event.target.value.replace(/\D/g, ""))
+                        setCountryCode(event.target.value.trim())
                       }
-                      className="h-12 w-full rounded-xl border border-slate-300 pl-11 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100"
-                      placeholder="Phone number"
-                      maxLength={15}
+                      className={inputClass}
+                      placeholder="+91"
                     />
+                    <div className="relative col-span-2">
+                      <Phone className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                      <input
+                        id="phoneNumber"
+                        type="tel"
+                        inputMode="numeric"
+                        value={phoneNumber}
+                        onChange={(event) =>
+                          setPhoneNumber(
+                            event.target.value.replace(/\D/g, "")
+                          )
+                        }
+                        className={`${inputClass} pl-11`}
+                        placeholder="Phone number"
+                        maxLength={15}
+                      />
+                    </div>
                   </div>
+
+                  {!isPhoneValid && phoneNumber.length > 0 && (
+                    <p className="text-xs text-rose-600">
+                      Enter 6 to 15 digits.
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={!isPhoneValid || sendLoading || verifyLoading}
+                    className={primaryBtnClass}
+                  >
+                    {sendLoading ? "Sending OTP..." : "Continue"}
+                    {!sendLoading && <ArrowRight className="h-4 w-4" />}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <form className="space-y-6" onSubmit={handleVerifyOtp}>
+                <div>
+                  <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#DFFF2F] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#101A5C]">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Step 2 of 2
+                  </p>
+                  <h1 className="mb-2 text-3xl font-extrabold text-[#101A5C] sm:text-4xl">
+                    Enter OTP
+                  </h1>
+                  <p className="text-gray-600">
+                    Enter the verification code for {countryCode} {phoneNumber}.
+                  </p>
+                  {expiresAt && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      Expires at {new Date(expiresAt).toLocaleString()}.
+                    </p>
+                  )}
                 </div>
 
-                {!isPhoneValid && phoneNumber.length > 0 && (
-                  <p className="text-xs text-rose-600">Enter 6 to 15 digits.</p>
+                <input
+                  id="otpCode"
+                  type="text"
+                  inputMode="numeric"
+                  value={otpCode}
+                  onChange={(event) =>
+                    setOtpCode(event.target.value.replace(/\D/g, ""))
+                  }
+                  className={`${inputClass} font-mono text-lg tracking-[0.3em]`}
+                  placeholder="4-6 digit code"
+                  maxLength={6}
+                />
+
+                {!isOtpValid && otpCode.length > 0 && (
+                  <p className="text-xs text-rose-600">
+                    OTP must be 4 to 6 digits.
+                  </p>
                 )}
 
                 <button
                   type="submit"
-                  disabled={!isPhoneValid || sendLoading || verifyLoading}
-                  className="h-12 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white transition hover:from-indigo-700 hover:to-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!isOtpValid || verifyLoading || sendLoading}
+                  className={primaryBtnClass}
                 >
-                  {sendLoading ? "Sending OTP..." : "Continue"}
+                  {verifyLoading ? "Verifying..." : "Verify OTP"}
+                  {!verifyLoading && <ArrowRight className="h-4 w-4" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOtpRequestId(null);
+                    setOtpCode("");
+                    setExpiresAt(null);
+                    setErrorMessage(null);
+                    setSuccessMessage(null);
+                    setOtpSetupWarning(null);
+                  }}
+                  className="w-full text-sm font-semibold text-[#243B8F] hover:text-[#101A5C]"
+                >
+                  Use a different number
                 </button>
               </form>
-            </div>
-          ) : (
-            <form className="space-y-6" onSubmit={handleVerifyOtp}>
-              <div>
-                <h1 className="mb-2 text-3xl font-bold text-slate-900">
-                  Enter OTP
-                </h1>
-                <p className="text-slate-600">
-                  Enter the verification code for {countryCode} {phoneNumber}.
-                </p>
-                {expiresAt && (
-                  <p className="mt-2 text-xs text-slate-500">
-                    Expires at {new Date(expiresAt).toLocaleString()}.
-                  </p>
+            )}
+
+            {(errorMessage || successMessage || otpSetupWarning) && (
+              <div className="rounded-2xl border border-[#101A5C]/10 bg-[#F6F7F2] p-4 text-sm">
+                {errorMessage && (
+                  <p className="text-rose-600">{errorMessage}</p>
+                )}
+                {successMessage && (
+                  <p className="text-emerald-700">{successMessage}</p>
+                )}
+                {otpSetupWarning && (
+                  <p className="text-amber-800">{otpSetupWarning}</p>
                 )}
               </div>
-
-              <input
-                id="otpCode"
-                type="text"
-                inputMode="numeric"
-                value={otpCode}
-                onChange={(event) =>
-                  setOtpCode(event.target.value.replace(/\D/g, ""))
-                }
-                className="h-12 w-full rounded-xl border border-slate-300 px-4 font-mono text-lg tracking-[0.3em] focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100"
-                placeholder="4-6 digit code"
-                maxLength={6}
-              />
-
-              {!isOtpValid && otpCode.length > 0 && (
-                <p className="text-xs text-rose-600">OTP must be 4 to 6 digits.</p>
-              )}
-
-              <button
-                type="submit"
-                disabled={!isOtpValid || verifyLoading || sendLoading}
-                className="h-12 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white transition hover:from-indigo-700 hover:to-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {verifyLoading ? "Verifying..." : "Verify OTP"}
-              </button>
-            </form>
-          )}
-
-          {(errorMessage || successMessage || otpSetupWarning) && (
-            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-              {errorMessage && <p className="text-rose-600">{errorMessage}</p>}
-              {successMessage && (
-                <p className="text-emerald-700">{successMessage}</p>
-              )}
-              {otpSetupWarning && (
-                <p className="text-amber-800">{otpSetupWarning}</p>
-              )}
-            </div>
-          )}
-
-          <p className="mt-6 text-center text-sm text-slate-600">
-            {variant === "signup" ? (
-              <>
-                Already have an account?{" "}
-                <Link
-                  to={
-                    searchParams.get("next")
-                      ? `/login?next=${encodeURIComponent(searchParams.get("next")!)}`
-                      : "/login"
-                  }
-                  className="font-semibold text-indigo-600"
-                >
-                  Sign in
-                </Link>
-              </>
-            ) : (
-              <>
-                New here?{" "}
-                <Link
-                  to={
-                    searchParams.get("next")
-                      ? `/signup?next=${encodeURIComponent(searchParams.get("next")!)}`
-                      : "/signup"
-                  }
-                  className="font-semibold text-indigo-600"
-                >
-                  Create an account
-                </Link>
-              </>
             )}
-          </p>
-        </motion.div>
+
+            <p className="text-center text-sm text-gray-500">
+              {variant === "signup" ? (
+                <>
+                  Already have an account?{" "}
+                  <Link
+                    to={
+                      searchParams.get("next")
+                        ? `/login?next=${encodeURIComponent(searchParams.get("next")!)}`
+                        : "/login"
+                    }
+                    className="font-semibold text-[#243B8F] hover:text-[#101A5C]"
+                  >
+                    Sign in
+                  </Link>
+                </>
+              ) : (
+                <>
+                  New here?{" "}
+                  <Link
+                    to={
+                      searchParams.get("next")
+                        ? `/signup?next=${encodeURIComponent(searchParams.get("next")!)}`
+                        : "/signup"
+                    }
+                    className="font-semibold text-[#243B8F] hover:text-[#101A5C]"
+                  >
+                    Create an account
+                  </Link>
+                </>
+              )}
+            </p>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
