@@ -13,7 +13,9 @@
     "@react-oauth/google": "^0.12.2",
     "axios": "^1.7.9",
     "lucide-react": "^1.8.0",
+    "mammoth": "^1.12.3",
     "motion": "^12.38.0",
+    "pdfjs-dist": "^6.3.289",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.1"

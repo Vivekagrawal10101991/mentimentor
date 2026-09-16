@@ -4,12 +4,14 @@ import com.mentormarketplace.user.dto.contract.InterestsEnvelope;
 import com.mentormarketplace.user.dto.contract.UpdateUserProfileRequest;
 import com.mentormarketplace.user.dto.contract.UpsertInterestsRequest;
 import com.mentormarketplace.user.dto.contract.UserProfileEnvelope;
+import com.mentormarketplace.user.service.AccountDeletionService;
 import com.mentormarketplace.user.service.UserProfileService;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -24,9 +26,11 @@ import org.springframework.http.HttpStatus;
 public class UserMeController {
 
     private final UserProfileService userProfileService;
+    private final AccountDeletionService accountDeletionService;
 
-    public UserMeController(UserProfileService userProfileService) {
+    public UserMeController(UserProfileService userProfileService, AccountDeletionService accountDeletionService) {
         this.userProfileService = userProfileService;
+        this.accountDeletionService = accountDeletionService;
     }
 
     @GetMapping
@@ -37,6 +41,12 @@ public class UserMeController {
     @PatchMapping
     public ResponseEntity<UserProfileEnvelope> updateMyProfile(@Valid @RequestBody UpdateUserProfileRequest request) {
         return ResponseEntity.ok(userProfileService.updateMyProfile(currentUserId(), request));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteMyAccount() {
+        accountDeletionService.deleteMyAccount(currentUserId());
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/interests")

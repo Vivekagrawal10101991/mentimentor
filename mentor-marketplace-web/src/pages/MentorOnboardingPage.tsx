@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/Logo";
+import { LocationSuggestInput } from "@/components/LocationSuggestInput";
+import { COUNTRY_CODES, iso2ForDialCode } from "@/constants/countryCodes";
 import { normalizeApiError } from "@/lib/apiError";
+import { parseResumeFile } from "@/lib/parseResume";
 import { getStoredAccessToken } from "@/lib/sessionUser";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { endpoints, httpClient } from "@/services/api";
@@ -296,6 +299,7 @@ export function MentorOnboardingPage() {
   // Basic info
   const [basic, setBasic] = useState({
     name: "",
+    countryCode: "+91",
     mobile: "",
     email: "",
     dob: "",
@@ -320,6 +324,10 @@ export function MentorOnboardingPage() {
     teachingExp: "",
     totalExp: "",
   });
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+  const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+  const [resumeParsing, setResumeParsing] = useState(false);
+  const [resumeParseError, setResumeParseError] = useState<string | null>(null);
 
   // Knowledge quiz
   const [kqIdx, setKqIdx] = useState(0);
@@ -403,6 +411,43 @@ export function MentorOnboardingPage() {
       return false;
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleResumeSelected(file: File | null) {
+    if (!file) return;
+    setResumeParseError(null);
+    setResumeParsing(true);
+    setResumeFileName(file.name);
+    try {
+      const parsed = await parseResumeFile(file);
+      setEdu((prev) => ({
+        ...prev,
+        qualification: parsed.qualification || prev.qualification,
+        college: parsed.college || prev.college,
+        degree: parsed.degree || prev.degree,
+        year: parsed.year || prev.year,
+        cgpa: parsed.cgpa || prev.cgpa,
+        teachingExp: parsed.teachingExp || prev.teachingExp,
+        totalExp: parsed.totalExp || prev.totalExp,
+      }));
+      const foundAnything = Object.values(parsed).some((v) => Boolean(v));
+      if (!foundAnything) {
+        setResumeParseError(
+          "We read your resume but couldn't auto-detect education fields. Please fill them in below."
+        );
+      }
+      setEduMode("parsed");
+    } catch (err) {
+      setResumeParseError(
+        err instanceof Error ? err.message : "Failed to parse resume. Please try another file."
+      );
+      setEduMode("upload");
+    } finally {
+      setResumeParsing(false);
+      if (resumeInputRef.current) {
+        resumeInputRef.current.value = "";
+      }
     }
   }
 
@@ -557,14 +602,45 @@ export function MentorOnboardingPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-1.5">Mobile Number *</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="+91 98765 43210"
-                    className="pl-10 bg-white"
-                    value={basic.mobile}
-                    onChange={(e) => setBasic({ ...basic, mobile: e.target.value })}
-                  />
+                <div className="flex gap-2">
+                  <label className="sr-only" htmlFor="mentor-country-code">
+                    Country code
+                  </label>
+                  <select
+                    id="mentor-country-code"
+                    value={basic.countryCode}
+                    onChange={(e) =>
+                      setBasic({ ...basic, countryCode: e.target.value })
+                    }
+                    className="h-[42px] w-[7.5rem] shrink-0 appearance-none rounded-xl border-2 border-gray-200 bg-white bg-[length:12px] bg-[right_0.75rem_center] bg-no-repeat px-2.5 pr-8 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                    }}
+                    aria-label="Country code"
+                  >
+                    {COUNTRY_CODES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.flag} {c.code}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="relative min-w-0 flex-1">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="98765 43210"
+                      className="pl-10 bg-white"
+                      value={basic.mobile}
+                      maxLength={15}
+                      onChange={(e) =>
+                        setBasic({
+                          ...basic,
+                          mobile: e.target.value.replace(/\D/g, ""),
+                        })
+                      }
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -616,16 +692,17 @@ export function MentorOnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">City *</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Mumbai, Delhi, Bangalore..."
-                    className="pl-10 bg-white"
-                    value={basic.city}
-                    onChange={(e) => setBasic({ ...basic, city: e.target.value })}
-                  />
-                </div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5" htmlFor="mentor-city">
+                  City *
+                </label>
+                <LocationSuggestInput
+                  id="mentor-city"
+                  value={basic.city}
+                  onChange={(city) => setBasic({ ...basic, city })}
+                  countryIso2={iso2ForDialCode(basic.countryCode) ?? "in"}
+                  placeholder="Start typing a city…"
+                  inputClassName="bg-white"
+                />
               </div>
 
               <div>
@@ -814,7 +891,11 @@ export function MentorOnboardingPage() {
             {/* Mode switch */}
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setEduMode("manual")}
+                type="button"
+                onClick={() => {
+                  setEduMode("manual");
+                  setResumeParseError(null);
+                }}
                 className={`py-4 rounded-xl border-2 text-sm font-medium flex flex-col items-center gap-2 transition-all ${
                   eduMode === "manual"
                     ? "border-primary bg-primary/8 text-primary"
@@ -825,7 +906,11 @@ export function MentorOnboardingPage() {
                 Enter manually
               </button>
               <button
-                onClick={() => setEduMode("upload")}
+                type="button"
+                onClick={() => {
+                  setEduMode("upload");
+                  setResumeParseError(null);
+                }}
                 className={`py-4 rounded-xl border-2 text-sm font-medium flex flex-col items-center gap-2 transition-all ${
                   eduMode === "upload" || eduMode === "parsed"
                     ? "border-accent bg-accent/10 text-accent-foreground"
@@ -840,38 +925,86 @@ export function MentorOnboardingPage() {
             {/* Resume upload flow */}
             {(eduMode === "upload" || eduMode === "parsed") && (
               <div>
-                {eduMode === "upload" && (
+                <input
+                  ref={resumeInputRef}
+                  type="file"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="sr-only"
+                  onChange={(e) => {
+                    void handleResumeSelected(e.target.files?.[0] ?? null);
+                  }}
+                />
+
+                {(eduMode === "upload" || resumeParsing) && (
                   <div
+                    role="button"
+                    tabIndex={0}
+                    aria-busy={resumeParsing}
                     onClick={() => {
-                      setEduMode("parsed");
-                      setEdu({
-                        qualification: "B.Tech",
-                        college: "IIT Bombay",
-                        degree: "Computer Science",
-                        year: "2018",
-                        cgpa: "8.7",
-                        teachingExp: "4 years",
-                        totalExp: "6 years",
-                      });
+                      if (!resumeParsing) resumeInputRef.current?.click();
+                    }}
+                    onKeyDown={(e) => {
+                      if (!resumeParsing && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault();
+                        resumeInputRef.current?.click();
+                      }
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (resumeParsing) return;
+                      const file = e.dataTransfer.files?.[0] ?? null;
+                      void handleResumeSelected(file);
                     }}
                     className="border-2 border-dashed border-accent/40 rounded-2xl p-10 text-center cursor-pointer hover:border-accent hover:bg-accent/5 transition-all"
                   >
                     <Upload className="w-10 h-10 text-accent mx-auto mb-3" />
-                    <p className="font-semibold text-foreground mb-1">Let mentimentor fill this for you.</p>
-                    <p className="text-sm text-muted-foreground mb-3">Upload your resume and we'll extract your details automatically.</p>
-                    <p className="text-xs text-muted-foreground">PDF, DOC up to 5MB</p>
+                    <p className="font-semibold text-foreground mb-1">
+                      {resumeParsing
+                        ? "Reading your resume…"
+                        : "Let mentimentor fill this for you."}
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {resumeParsing
+                        ? "Extracting education and experience details."
+                        : "Upload your resume and we'll extract your details automatically."}
+                    </p>
+                    <p className="text-xs text-muted-foreground">PDF or DOCX up to 5MB</p>
                   </div>
                 )}
 
-                {eduMode === "parsed" && (
+                {eduMode === "parsed" && !resumeParsing && (
                   <div className="space-y-4">
                     <div className="bg-[#27AE60]/10 border border-[#27AE60]/20 rounded-xl p-4 flex items-start gap-3">
                       <CheckCircle2 className="w-5 h-5 text-[#27AE60] flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">Resume parsed successfully</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Your information has been extracted. Please review it before continuing.</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground">
+                          {resumeFileName
+                            ? `Parsed ${resumeFileName}`
+                            : "Resume parsed successfully"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Review the fields below and correct anything that looks off.
+                        </p>
+                        <button
+                          type="button"
+                          className="mt-2 text-xs font-semibold text-accent underline"
+                          onClick={() => resumeInputRef.current?.click()}
+                        >
+                          Upload a different file
+                        </button>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {resumeParseError && (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    {resumeParseError}
                   </div>
                 )}
               </div>

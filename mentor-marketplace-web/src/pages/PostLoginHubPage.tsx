@@ -17,6 +17,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { normalizeApiError } from "@/lib/apiError";
+import { DeleteAccountSection } from "@/components/DeleteAccountSection";
 import { clearStoredSession, getStoredAccessToken, getStoredUserId } from "@/lib/sessionUser";
 import { endpoints, httpClient } from "@/services/api";
 import type { UserProfile, UserProfileEnvelope } from "@/types";
@@ -280,6 +281,8 @@ export function PostLoginHubPage() {
           <LogOut className="mr-2 h-5 w-5" />
           Logout
         </button>
+
+        <DeleteAccountSection />
 
         <p className="text-center text-sm text-slate-500">
           Version 1.0.0 • Made with care in India

@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { DeleteAccountSection } from "@/components/DeleteAccountSection";
 import { normalizeApiError } from "@/lib/apiError";
 import { getStoredAccessToken } from "@/lib/sessionUser";
 import { endpoints, httpClient } from "@/services/api";
@@ -147,6 +148,16 @@ export function AccountDetailsPage() {
             {saving ? "Saving…" : "Save"}
           </button>
         </form>
+
+        <div className="mt-8 space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Danger zone
+          </h2>
+          <p className="text-sm text-slate-600">
+            Permanently remove your mentimentor account and associated data.
+          </p>
+          <DeleteAccountSection />
+        </div>
       </div>
     </div>
   );

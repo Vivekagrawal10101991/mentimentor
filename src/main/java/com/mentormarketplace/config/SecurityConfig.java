@@ -29,6 +29,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/admin/admins").hasRole("super_admin")
                         .requestMatchers(HttpMethod.POST, "/admin/admins").hasRole("super_admin")
                         .requestMatchers("/admin/**").hasAnyRole("admin", "super_admin")
@@ -37,7 +38,14 @@ public class SecurityConfig {
                         .requestMatchers("/booking/**", "/payment/**").permitAll()
                         .requestMatchers("/mentors/profile", "/mentors/availability", "/mentors/available").permitAll()
                         .requestMatchers("/mentors/search").permitAll()
-                        .requestMatchers("/users/me/**", "/user/**", "/mentors/me/**", "/bookings/**", "/payments/**", "/requests/**")
+                        .requestMatchers(
+                                "/users/me",
+                                "/users/me/**",
+                                "/user/**",
+                                "/mentors/me/**",
+                                "/bookings/**",
+                                "/payments/**",
+                                "/requests/**")
                         .authenticated()
                         .requestMatchers("/mentors/**").permitAll()
                         .anyRequest()

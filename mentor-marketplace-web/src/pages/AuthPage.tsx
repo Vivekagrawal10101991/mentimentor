@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { googleClientId } from "@/config/env";
+import { COUNTRY_CODES } from "@/constants/countryCodes";
 import { normalizeApiError } from "@/lib/apiError";
 import { consumePostAuthReturn, setPostAuthReturn } from "@/lib/postAuthRedirect";
 import { safeInternalPath } from "@/lib/safeInternalPath";
@@ -27,7 +28,6 @@ import type {
   OtpDeliveryHint,
   SendOtpRequest,
   SendOtpResponse,
-  UserProfileEnvelope,
   VerifyOtpRequest,
   VerifyOtpResponse,
 } from "@/types";
@@ -88,17 +88,9 @@ async function navigateAfterMemberSignIn(
 ) {
   const returnTo = consumePostAuthReturn();
   const next = safeInternalPath(returnTo);
-  try {
-    const { data } = await httpClient.get<UserProfileEnvelope>(endpoints.usersMe);
-    if (data.data.accountVerificationComplete === true) {
-      navigate(next ?? "/profiles", { replace: true });
-      return;
-    }
-  } catch {
-    /* fall through to verification */
-  }
-  const suffix = returnTo ? `?next=${encodeURIComponent(returnTo)}` : "";
-  navigate(`/account/verification${suffix}`, { replace: true });
+  // Skip account verification gate — return to the intended destination
+  // (e.g. /profiles/mentor after "Become a Mentor") or the profiles hub.
+  navigate(next ?? "/profiles", { replace: true });
 }
 
 export function AuthPage({
@@ -583,19 +575,27 @@ export function AuthPage({
                 )}
 
                 <form className="space-y-3" onSubmit={handleSendOtp}>
-                  <div className="grid grid-cols-3 gap-3">
-                    <input
+                  <div className="flex gap-3">
+                    <label className="sr-only" htmlFor="countryCode">
+                      Country code
+                    </label>
+                    <select
                       id="countryCode"
-                      type="text"
-                      inputMode="text"
                       value={countryCode}
-                      onChange={(event) =>
-                        setCountryCode(event.target.value.trim())
-                      }
-                      className={inputClass}
-                      placeholder="+91"
-                    />
-                    <div className="relative col-span-2">
+                      onChange={(event) => setCountryCode(event.target.value)}
+                      className={`${inputClass} w-[7.5rem] shrink-0 appearance-none bg-[length:12px] bg-[right_0.75rem_center] bg-no-repeat pr-8`}
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                      }}
+                      aria-label="Country code"
+                    >
+                      {COUNTRY_CODES.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.flag} {c.code}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="relative min-w-0 flex-1">
                       <Phone className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                       <input
                         id="phoneNumber"
